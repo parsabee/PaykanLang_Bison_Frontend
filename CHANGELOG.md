@@ -15,7 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   type-argument scan and the 512-level nesting limit), `cmake/BisonFlexSetup.cmake` and
   `scripts/diff_frontends.py`.
 - A CMake project that builds the plugin and a `paykan` driver against an installed
-  PaykanLang 0.1 (`find_package(Paykan)`, `paykan_add_driver`).
+  PaykanLang 0.1 (`find_package(Paykan)`, `paykan_add_frontend_plugin` with its
+  compatibility check from PaykanLang#103, `paykan_add_driver`).
 - Tests: PaykanLang's parser and Sema suites, fuzz smoke and differential tests through
   `paykan_add_frontend_tests`, the `--dump-ast` differential check and a samples run against
   the recursive-descent frontend on the c backend.

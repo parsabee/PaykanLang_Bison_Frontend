@@ -40,16 +40,21 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 find_package(Paykan 0.1 REQUIRED)
 message(STATUS "Paykan ${Paykan_VERSION}: frontends ${PAYKAN_FRONTENDS}, backends ${PAYKAN_BACKENDS}")
 
-# TODO(#103): PaykanLang PR #103 adds plugin build-version checks (the
-# registration macros record the toolchain version, and the toolchain accepts
-# the versions a plugin lists).  Once it is in the PaykanLang release this
-# plugin targets, build the library with its helper (paykan_add_frontend_plugin
-# or whatever #103 names it) instead of the plain add_library() in
-# src/CMakeLists.txt, and raise the find_package(Paykan ...) minimum above.
-if(COMMAND paykan_add_frontend_plugin)
-    message(STATUS "PaykanLang provides paykan_add_frontend_plugin (#103): "
-                   "not adopted yet, see the TODO(#103) in CMakeLists.txt")
+# Plugin compatibility (parsabee/PaykanLang#103): the library is built with
+# paykan_add_frontend_plugin, which fails here unless the installed PaykanLang
+# accepts plugins built with this version (PAYKAN_PLUGIN_COMPATIBLE_VERSIONS);
+# the registration macro records the same version for the check paykan makes
+# at run time.  PAYKAN_BISON_BUILT_WITH pins the version checked at configure
+# time (default: the installation's own, PAYKAN_TOOLCHAIN_VERSION).
+if(NOT COMMAND paykan_add_frontend_plugin)
+    message(FATAL_ERROR "The installed PaykanLang (${Paykan_DIR}) has no "
+                        "paykan_add_frontend_plugin: it predates the plugin "
+                        "compatibility check (parsabee/PaykanLang#103)")
 endif()
+set(PAYKAN_BISON_BUILT_WITH "" CACHE STRING
+    "The PaykanLang version the plugin is checked as built with (default: the installation's)")
+message(STATUS "PaykanLang ${PAYKAN_TOOLCHAIN_VERSION} accepts plugins built with "
+               "${PAYKAN_PLUGIN_COMPATIBLE_VERSIONS}")
 
 # -- Bison and Flex -----------------------------------------------------------
 # Built from source into <build>/third-party on the first configure (needs

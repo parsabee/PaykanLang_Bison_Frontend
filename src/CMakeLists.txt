@@ -47,9 +47,11 @@ add_custom_command(
 )
 
 # -- Plugin library -----------------------------------------------------------
-# TODO(#103): build this with PaykanLang's plugin helper once it ships (see
-# the top-level CMakeLists.txt).
-add_library(paykan_frontend_bison STATIC
+# A static library linked with Paykan::frontend; configure fails unless the
+# installed PaykanLang accepts the version it is built with (top-level
+# CMakeLists.txt).
+paykan_add_frontend_plugin(paykan_frontend_bison
+    BUILT_WITH "${PAYKAN_BISON_BUILT_WITH}"
     ${PARSER_CPP}
     ${LEXER_CPP}
     BisonFrontend.cpp
@@ -58,12 +60,6 @@ add_library(paykan_frontend_bison STATIC
 target_include_directories(paykan_frontend_bison
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}     # BisonFrontend.h (private)
             ${PARSER_GEN_DIR}               # Parser.ypp.h, location.hh (private)
-)
-
-# The installed frontend interface: paykan/Frontend.h, AST.h, ASTContext.h,
-# DiagEngine.h (include/paykan/compiler of the installation).
-target_link_libraries(paykan_frontend_bison
-    PUBLIC  Paykan::frontend
 )
 
 # Bison's lalr1.cc uses throw/catch and typeid: RTTI and exceptions here

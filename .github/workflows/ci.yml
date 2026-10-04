@@ -16,12 +16,12 @@ on:
         default: ""
 
 # The PaykanLang commit this plugin is built and tested against on pushes and
-# pull requests.  TODO: pin the v0.1.0 release tag (or the develop merge
-# commit of parsabee/PaykanLang#60's PR) once it exists; this is the head of
-# that PR, the first PaykanLang with the frontend test support
-# (paykan_add_frontend_tests).
+# pull requests: the head of PaykanLang's #60 PR (claude/remove-bison-60,
+# stacked on #139), the first PaykanLang with both paykan_add_frontend_plugin
+# (#103) and the frontend test support (paykan_add_frontend_tests).  TODO:
+# once those PRs merge, pin the develop merge commit, then the v0.1.0 tag.
 env:
-  PAYKAN_REF: "10c786883b1af961ad60c6b0a0f498756bea6740"
+  PAYKAN_REF: "e6848ac447d70adbd13f66e80322d19261fbcf34"
 
 permissions:
   contents: read

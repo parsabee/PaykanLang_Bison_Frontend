@@ -23,9 +23,10 @@ The default frontend stays `recursive-descent`; `--frontend=bison` selects this 
 
 ## Prerequisites
 
-- An installed PaykanLang of the **0.1** series that includes the frontend test support
-  (`find_package(Paykan)` provides `paykan_add_frontend_tests`; PaykanLang installs it by
-  default). See [Compatibility](#compatibility).
+- An installed PaykanLang of the **0.1** series with the plugin compatibility check
+  (`paykan_add_frontend_plugin`, [PaykanLang#103](https://github.com/parsabee/PaykanLang/issues/103))
+  and the frontend test support (`paykan_add_frontend_tests`, installed by default). See
+  [Compatibility](#compatibility).
 - CMake 3.24 or newer, a C++20 compiler (GCC or Clang) and a C compiler.
 - **GNU m4**, `make` and a network connection on the first configure: Bison 3.8 and Flex 2.6.4
   are downloaded and built from source into `build/third-party` (GNU `configure` + `make`), and
@@ -69,6 +70,7 @@ to `<dir>/bin`; it finds its runtime in the PaykanLang installation it was built
 | `ParserTests.bison`, `SemaTests.bison` | PaykanLang's frontend-parameterized parser and Sema suites, parsed with `bison`; every input is also parsed with `recursive-descent` and the ASTs compared. Includes the nesting-limit tests (`GrammarEdge.Nesting*`). |
 | `FrontendTests.bison` | The fuzz smoke test (random and mutated input never crashes, hangs or leaks) and the in-process differential check over the samples corpus. |
 | `FrontendDifferential` | `paykan --dump-ast` with `recursive-descent` and with `bison` over every sample: same exit status, same AST ([`scripts/diff_frontends.py`](scripts/diff_frontends.py)). |
+| `BuiltWithMismatch` | Configuring with `-DPAYKAN_BISON_BUILT_WITH=<a version the installation does not accept>` fails with the compatibility error. |
 | `SamplesFrontendParity` | Every runnable sample on the c backend with each frontend: same stdout, stderr and exit code, zero live heap blocks ([`scripts/samples_frontends.py`](scripts/samples_frontends.py)). |
 
 The suites and the samples come from the PaykanLang installation
@@ -82,6 +84,14 @@ its errors its own way (`syntax error, unexpected X`) and recovers only at `;` i
 | Plugin | PaykanLang |
 |---|---|
 | 0.1.x | 0.1.x (`find_package(Paykan 0.1)`; the plugin interfaces may change between minor releases) |
+
+The library is built with PaykanLang's `paykan_add_frontend_plugin`, so the plugin records the
+version of the PaykanLang it was built against, and configure fails unless that installation
+accepts it (`PAYKAN_PLUGIN_COMPATIBLE_VERSIONS`). At run time `paykan --version` and
+`paykan --list-frontends` show whether `bison` is compatible; an incompatible build is listed
+as `bison (incompatible: ...)` and `--frontend=bison` refuses it (exit status 2). Rebuild the
+plugin against each PaykanLang release. `-DPAYKAN_BISON_BUILT_WITH=<version>` checks another
+build version at configure time (for testing the check).
 
 CI builds PaykanLang from source at a pinned commit (`PAYKAN_REF` in
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml)) on Linux and macOS, installs it, removes

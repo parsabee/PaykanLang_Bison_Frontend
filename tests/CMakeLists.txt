@@ -15,6 +15,9 @@
 #       every runnable sample run on the c backend with each frontend: same
 #       stdout, stderr and exit code, zero live heap blocks
 #       (scripts/samples_frontends.py).
+#   BuiltWithMismatch
+#       configuring with a build version the installation does not accept
+#       fails (tests/BuiltWithMismatch.cmake).
 # ----------------------------------------------------------------------------
 
 # -- GoogleTest ---------------------------------------------------------------
@@ -60,3 +63,14 @@ if("c" IN_LIST PAYKAN_BACKENDS)
                 --backend c
                 --frontend recursive-descent --frontend bison)
 endif()
+
+# The configure-time compatibility check: a plugin checked as built with a
+# version the installation does not accept fails to configure.
+add_test(NAME BuiltWithMismatch
+    COMMAND ${CMAKE_COMMAND}
+            -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+            -DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/built-with-mismatch
+            -DGENERATOR=${CMAKE_GENERATOR}
+            "-DPREFIX_PATH=${CMAKE_PREFIX_PATH}"
+            "-DLLVM_DIR=${LLVM_DIR}"
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/BuiltWithMismatch.cmake)
