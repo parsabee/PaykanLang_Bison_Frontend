@@ -16,12 +16,14 @@ on:
         default: ""
 
 # The PaykanLang commit this plugin is built and tested against on pushes and
-# pull requests: the head of PaykanLang's #60 PR (claude/remove-bison-60,
-# stacked on #139), the first PaykanLang with both paykan_add_frontend_plugin
-# (#103) and the frontend test support (paykan_add_frontend_tests).  TODO:
-# once those PRs merge, pin the develop merge commit, then the v0.1.0 tag.
+# pull requests: the head of PaykanLang's loadable-frontends branch
+# (claude/dynamic-frontends-141, #141, stacked on #139 -> #140 -> the
+# loadable-backends PR), the first PaykanLang that loads frontend plugins at
+# run time.  TODO: repin once those PRs merge: the develop merge commit, then
+# the v0.1.0 tag.  Until then the nightly run against develop fails (develop
+# has no loadable plugins yet).
 env:
-  PAYKAN_REF: "e6848ac447d70adbd13f66e80322d19261fbcf34"
+  PAYKAN_REF: "4f0a45daaa9bfc8bd1c9ccd1f9081c9efab5dd7e"
 
 permissions:
   contents: read
@@ -90,8 +92,9 @@ jobs:
           brew install ninja
           m4 --version
 
-      # The default (core) configuration: recursive-descent + c.  No tests,
-      # so PaykanLang itself downloads nothing.
+      # The default (core) configuration: recursive-descent + c, as a
+      # release would ship it.  No tests, so PaykanLang itself downloads
+      # nothing.
       - name: Build and install PaykanLang
         run: |
           set -euo pipefail
@@ -119,15 +122,29 @@ jobs:
       - name: Build
         run: cmake --build build --parallel
 
+      # Every test runs the module through the installed paykan (or its
+      # plugin loader): --plugin=<module>.
       - name: Test
         run: ctest --test-dir build --output-on-failure --parallel 4
 
-      - name: Smoke test the driver
+      # Install the plugin into the installation's plugin directory, delete
+      # the plugin's build tree, and use the system paykan as a user would.
+      - name: Install the plugin and use it from the installed paykan
         run: |
           set -euo pipefail
-          build/bin/paykan --list-frontends | grep -x bison
+          cmake --install build
+          rm -rf build
+          paykan="$PWD/paykan-prefix/bin/paykan"
+          "$paykan" --version
+          "$paykan" --list-frontends | tee frontends.log
+          grep -E '^bison: .*\[.*/lib/paykan/plugins/[^/]+/libpaykan_frontend_bison\.(so|dylib)\]$' frontends.log
           printf 'fn main() -> int {\n  println("hi from bison");\n  return 0;\n}\n' > hello.pkn
-          build/bin/paykan --frontend=bison hello.pkn | grep -Fx "hi from bison"
+          "$paykan" --frontend=bison hello.pkn | grep -Fx "hi from bison"
+          # --no-plugins leaves it out.
+          if "$paykan" --no-plugins --list-frontends | grep bison; then
+            echo "error: --no-plugins still loads the plugin"
+            exit 1
+          fi
 
   # A failed nightly means PaykanLang's develop and this frontend disagree:
   # open (or comment on) a tracking issue.

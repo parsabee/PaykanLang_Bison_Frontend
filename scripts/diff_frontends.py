@@ -11,8 +11,11 @@ recovers in its own way), may differ between frontends (docs/grammar.md
 section 9).
 
 Usage:
-    scripts/diff_frontends.py --paykan build/bin/paykan <dir> [dir ...]
-        [--frontends recursive-descent,bison]
+    scripts/diff_frontends.py --paykan <prefix>/bin/paykan <dir> [dir ...]
+        [--paykan-arg=--plugin=<module> ...] [--frontends recursive-descent,bison]
+
+--paykan-arg passes an argument to every paykan run (repeatable): the
+plugin to load (`--paykan-arg=--no-plugins --paykan-arg=--plugin=<file>`).
 
 The installed samples corpus is <paykan-prefix>/share/paykan/samples
 (PAYKAN_SAMPLES_DIR in CMake).
@@ -28,9 +31,9 @@ import subprocess
 import sys
 
 
-def dump(paykan: str, frontend: str, path: str) -> tuple[int, str, str]:
+def dump(paykan: list[str], frontend: str, path: str) -> tuple[int, str, str]:
     r = subprocess.run(
-        [paykan, f"--frontend={frontend}", "--dump-ast", path],
+        [*paykan, f"--frontend={frontend}", "--dump-ast", path],
         capture_output=True,
         text=True,
         errors="replace",
@@ -54,8 +57,15 @@ def main() -> int:
         default="recursive-descent,bison",
         help="comma-separated pair of frontend names (default: recursive-descent,bison)",
     )
+    ap.add_argument(
+        "--paykan-arg",
+        action="append",
+        default=[],
+        help="an argument for every paykan run, e.g. --paykan-arg=--plugin=<file>",
+    )
     ap.add_argument("dirs", nargs="+", help="directories to scan for .pkn files")
     args = ap.parse_args()
+    paykan = [args.paykan, *args.paykan_arg]
 
     names = [n.strip() for n in args.frontends.split(",") if n.strip()]
     if len(names) != 2:
@@ -63,12 +73,15 @@ def main() -> int:
     dirs = args.dirs
 
     listed = subprocess.run(
-        [args.paykan, "--list-frontends"], capture_output=True, text=True
+        [*paykan, "--list-frontends"], capture_output=True, text=True
     ).stdout
+    # "<name>[ (default)][: <description>][ [<file>]]" per frontend.
+    available = [line.split()[0].rstrip(":") for line in listed.splitlines()
+                 if line.strip() and not line.startswith("rejected plugin")]
     for n in names:
-        if n not in listed.split():
-            sys.exit(f"error: frontend '{n}' is not built into {args.paykan} "
-                     f"(available: {listed.split()})")
+        if n not in available:
+            sys.exit(f"error: frontend '{n}' is not available in "
+                     f"{' '.join(paykan)} (available: {available})\n{listed}")
 
     files = collect(dirs)
     if not files:
@@ -77,8 +90,8 @@ def main() -> int:
     failures = 0
     accepted = rejected = 0
     for path in files:
-        a = dump(args.paykan, names[0], path)
-        b = dump(args.paykan, names[1], path)
+        a = dump(paykan, names[0], path)
+        b = dump(paykan, names[1], path)
         if a[0] != b[0] or a[1] != b[1]:
             failures += 1
             rel = os.path.relpath(path, os.path.commonpath(dirs))

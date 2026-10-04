@@ -1,18 +1,17 @@
 # PaykanLang_Bison_Frontend
 # ----------------------------------------------------------------------------
-# The Bison/Flex frontend for PaykanLang, as an out-of-tree plugin built
-# against an installed PaykanLang (find_package(Paykan)).  Produces:
+# The Bison/Flex frontend for PaykanLang, as a plugin that the INSTALLED
+# `paykan` loads at run time (PaykanLang#141).  Produces:
 #
-#   paykan_frontend_bison   the frontend plugin (a static library that
-#                           registers the `bison` frontend)
-#   bin/paykan              a paykan driver with every plugin of the
-#                           installation plus this one: --frontend=bison
-#
-# Only the installed PaykanLang headers, libraries and CMake package are used.
+#   libpaykan_frontend_bison.so (.dylib)   the `bison` frontend: a loadable
+#                           module with PaykanLang's C plugin interface;
+#                           `cmake --install` puts it into the installation's
+#                           plugin directory (PAYKAN_PLUGIN_INSTALL_DIR)
 #
 #   cmake -B build -DCMAKE_PREFIX_PATH=<paykan-prefix>
 #   cmake --build build
 #   ctest --test-dir build
+#   cmake --install build          # then: paykan --frontend=bison program.pkn
 # ----------------------------------------------------------------------------
 cmake_minimum_required(VERSION 3.24)
 
@@ -40,17 +39,19 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 find_package(Paykan 0.1 REQUIRED)
 message(STATUS "Paykan ${Paykan_VERSION}: frontends ${PAYKAN_FRONTENDS}, backends ${PAYKAN_BACKENDS}")
 
-# Plugin compatibility (parsabee/PaykanLang#103): the library is built with
+# Plugin compatibility (parsabee/PaykanLang#103): the module is built with
 # paykan_add_frontend_plugin, which fails here unless the installed PaykanLang
 # accepts plugins built with this version (PAYKAN_PLUGIN_COMPATIBLE_VERSIONS);
-# the registration macro records the same version for the check paykan makes
-# at run time.  PAYKAN_BISON_BUILT_WITH pins the version checked at configure
-# time (default: the installation's own, PAYKAN_TOOLCHAIN_VERSION).
-if(NOT COMMAND paykan_add_frontend_plugin)
-    message(FATAL_ERROR "The installed PaykanLang (${Paykan_DIR}) has no "
-                        "paykan_add_frontend_plugin: it predates the plugin "
-                        "compatibility check (parsabee/PaykanLang#103)")
+# the plugin's descriptor declares the same version for the check paykan
+# makes when it loads the module.  PAYKAN_BISON_BUILT_WITH pins the version
+# (default: the installation's own, PAYKAN_TOOLCHAIN_VERSION).
+if(NOT COMMAND paykan_add_frontend_plugin OR NOT PAYKAN_PLUGIN_API_VERSION)
+    message(FATAL_ERROR "The installed PaykanLang (${Paykan_DIR}) predates "
+                        "loadable plugins (parsabee/PaykanLang#141): it has no "
+                        "C plugin interface (PAYKAN_PLUGIN_API_VERSION)")
 endif()
+message(STATUS "PaykanLang plugin API ${PAYKAN_PLUGIN_API_VERSION}; plugins "
+               "install into ${PAYKAN_PLUGIN_INSTALL_DIR}")
 set(PAYKAN_BISON_BUILT_WITH "" CACHE STRING
     "The PaykanLang version the plugin is checked as built with (default: the installation's)")
 message(STATUS "PaykanLang ${PAYKAN_TOOLCHAIN_VERSION} accepts plugins built with "
@@ -69,16 +70,12 @@ set(GTEST_INSTALL_DIR ${THIRD_PARTY_DIR}/gtest)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(BisonFlexSetup)     # -> BISON_EXECUTABLE, FLEX_EXECUTABLE, bison_ext, flex_ext
 
-# -- The plugin and the driver ------------------------------------------------
+# -- The plugin -----------------------------------------------------------------
 add_subdirectory(src)
 
-# The installation's driver plus the bison frontend.  Its default frontend
-# stays the installation's (recursive-descent); --frontend=bison selects this
-# one.
-paykan_add_driver(paykan PLUGINS paykan_frontend_bison)
-
-include(GNUInstallDirs)
-install(TARGETS paykan RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+# Into the installation's plugin directory, where its `paykan` finds it:
+# `paykan --frontend=bison`.  (The default frontend stays recursive-descent.)
+paykan_install_plugin(paykan_frontend_bison)
 
 # -- Tests ----------------------------------------------------------------------
 option(PAYKAN_BISON_BUILD_TESTS "Build the test suite (needs GoogleTest)" ${PROJECT_IS_TOP_LEVEL})
