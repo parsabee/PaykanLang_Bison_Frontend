@@ -1,0 +1,156 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # Nightly against PaykanLang's develop: a grammar or interface change there
+  # shows up here within a day (and opens an issue, see below).
+  schedule:
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+    inputs:
+      paykan_ref:
+        description: "PaykanLang ref to build against (default: the pinned PAYKAN_REF)"
+        required: false
+        default: ""
+
+# The PaykanLang commit this plugin is built and tested against on pushes and
+# pull requests.  TODO: pin the v0.1.0 release tag (or the develop merge
+# commit of parsabee/PaykanLang#60's PR) once it exists; this is the head of
+# that PR, the first PaykanLang with the frontend test support
+# (paykan_add_frontend_tests).
+env:
+  PAYKAN_REF: "10c786883b1af961ad60c6b0a0f498756bea6740"
+
+permissions:
+  contents: read
+
+jobs:
+  # clang-format 17 (PaykanLang's pinned version) over the hand-written
+  # sources; the generated parser and scanner are not checked.
+  format:
+    name: clang-format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: clang-format (check)
+        run: |
+          python3 -m pip install --quiet clang-format==17.0.6
+          clang-format --version
+          clang-format --dry-run --Werror src/*.cpp src/*.h
+
+  build-test:
+    name: ${{ matrix.name }} | PaykanLang ${{ github.event_name == 'schedule' && 'develop' || 'pinned' }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux x86-64
+            os: ubuntu-latest
+          - name: macOS arm64
+            os: macos-14
+    steps:
+      - name: Choose the PaykanLang ref
+        id: ref
+        env:
+          EVENT: ${{ github.event_name }}
+          INPUT_REF: ${{ inputs.paykan_ref }}
+        run: |
+          set -euo pipefail
+          if [ "${EVENT}" = "schedule" ]; then
+            ref=develop
+          elif [ -n "${INPUT_REF}" ]; then
+            ref="${INPUT_REF}"
+          else
+            ref="${PAYKAN_REF}"
+          fi
+          echo "PaykanLang ref: ${ref}"
+          echo "ref=${ref}" >> "${GITHUB_OUTPUT}"
+
+      - uses: actions/checkout@v4
+
+      - name: Check out PaykanLang
+        uses: actions/checkout@v4
+        with:
+          repository: parsabee/PaykanLang
+          ref: ${{ steps.ref.outputs.ref }}
+          path: paykanlang
+
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y ninja-build m4
+
+      - name: Install system dependencies (macOS)
+        if: runner.os == 'macOS'
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+        run: |
+          brew install ninja
+          m4 --version
+
+      # The default (core) configuration: recursive-descent + c.  No tests,
+      # so PaykanLang itself downloads nothing.
+      - name: Build and install PaykanLang
+        run: |
+          set -euo pipefail
+          cmake -S paykanlang -B paykan-build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DPAYKAN_BUILD_TESTS=OFF
+          cmake --build paykan-build --parallel
+          cmake --install paykan-build --prefix "$PWD/paykan-prefix"
+          git -C paykanlang log -1 --format='PaykanLang %H %s'
+          # The plugin must need nothing but the installation.
+          rm -rf paykanlang paykan-build
+
+      - name: Cache Bison and Flex
+        uses: actions/cache@v4
+        with:
+          path: |
+            build/third-party/bison
+            build/third-party/flex
+          key: bison-flex-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('cmake/BisonFlexSetup.cmake', 'CMakeLists.txt') }}
+
+      - name: Configure
+        run: |
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_PREFIX_PATH="$PWD/paykan-prefix"
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure --parallel 4
+
+      - name: Smoke test the driver
+        run: |
+          set -euo pipefail
+          build/bin/paykan --list-frontends | grep -x bison
+          printf 'fn main() -> int {\n  println("hi from bison");\n  return 0;\n}\n' > hello.pkn
+          build/bin/paykan --frontend=bison hello.pkn | grep -Fx "hi from bison"
+
+  # A failed nightly means PaykanLang's develop and this frontend disagree:
+  # open (or comment on) a tracking issue.
+  report-nightly:
+    name: Report a failed nightly
+    needs: build-test
+    if: failure() && github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Open or update the tracking issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          title="Nightly against PaykanLang develop failed"
+          number=$(gh issue list --state open --search "in:title \"${title}\"" --json number --jq '.[0].number // empty')
+          body="The nightly build against PaykanLang \`develop\` failed: ${RUN_URL}"
+          if [ -n "${number}" ]; then
+            gh issue comment "${number}" --body "${body}"
+          else
+            gh issue create --title "${title}" --body "${body}"
+          fi

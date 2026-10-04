@@ -13,6 +13,17 @@
 
 include(ExternalProject)
 
+# Building Bison and Flex from source (GNU configure + make) needs GNU m4,
+# which Bison also runs to generate the parser: `apt install m4`; macOS has
+# it with the Command Line Tools.
+if(NOT EXISTS ${BISON_INSTALL_DIR}/bin/bison OR NOT EXISTS ${FLEX_INSTALL_DIR}/bin/flex)
+    find_program(M4_EXECUTABLE NAMES gm4 m4)
+    if(NOT M4_EXECUTABLE)
+        message(FATAL_ERROR "GNU m4 is required to build Bison and Flex from source "
+                            "(apt install m4; on macOS, xcode-select --install)")
+    endif()
+endif()
+
 # Use all available cores for building autotools projects.
 include(ProcessorCount)
 ProcessorCount(NPROC)

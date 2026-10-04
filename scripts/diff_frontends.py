@@ -2,16 +2,20 @@
 """Differential check of the Paykan frontends.
 
 Runs `paykan --frontend=<name> --dump-ast` with two frontends over every
-`.pkn` file below the given directories (default: samples/) and reports any
-file for which the two differ in exit status or in the printed AST.  Both frontends must accept the same inputs,
-reject the same inputs and build the same AST (docs/grammar.md); this script
-is the CI gate for that rule.  Diagnostics are not compared: their wording,
-and the errors after the first (each frontend recovers in its own way), may
-differ between frontends (docs/grammar.md section 9).
+`.pkn` file below the given directories and reports any file for which the
+two differ in exit status or in the printed AST.  Both frontends must accept
+the same inputs, reject the same inputs and build the same AST (PaykanLang's
+docs/grammar.md); this script is the CI gate for that rule.  Diagnostics are
+not compared: their wording, and the errors after the first (each frontend
+recovers in its own way), may differ between frontends (docs/grammar.md
+section 9).
 
 Usage:
-    scripts/diff_frontends.py --paykan build/bin/paykan [dir ...]
+    scripts/diff_frontends.py --paykan build/bin/paykan <dir> [dir ...]
         [--frontends recursive-descent,bison]
+
+The installed samples corpus is <paykan-prefix>/share/paykan/samples
+(PAYKAN_SAMPLES_DIR in CMake).
 
 Exits non-zero when any file differs or a frontend is unavailable.
 """
@@ -22,8 +26,6 @@ import difflib
 import os
 import subprocess
 import sys
-
-REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def dump(paykan: str, frontend: str, path: str) -> tuple[int, str, str]:
@@ -52,13 +54,13 @@ def main() -> int:
         default="recursive-descent,bison",
         help="comma-separated pair of frontend names (default: recursive-descent,bison)",
     )
-    ap.add_argument("dirs", nargs="*", help="directories to scan for .pkn files")
+    ap.add_argument("dirs", nargs="+", help="directories to scan for .pkn files")
     args = ap.parse_args()
 
     names = [n.strip() for n in args.frontends.split(",") if n.strip()]
     if len(names) != 2:
         sys.exit("error: --frontends needs exactly two names")
-    dirs = args.dirs or [os.path.join(REPO_ROOT, "samples")]
+    dirs = args.dirs
 
     listed = subprocess.run(
         [args.paykan, "--list-frontends"], capture_output=True, text=True
@@ -79,7 +81,7 @@ def main() -> int:
         b = dump(args.paykan, names[1], path)
         if a[0] != b[0] or a[1] != b[1]:
             failures += 1
-            rel = os.path.relpath(path, REPO_ROOT)
+            rel = os.path.relpath(path, os.path.commonpath(dirs))
             print(f"DIFF {rel}: {names[0]} exit={a[0]}, {names[1]} exit={b[0]}")
             if a[0] == 0 and b[0] == 0:
                 for line in list(difflib.unified_diff(
