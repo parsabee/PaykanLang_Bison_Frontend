@@ -225,8 +225,7 @@ classDecl:
                                     { $$ = drv.Ctx->make<ClassDecl>(loc(@1, @7), drv.Ctx->intern($2),
  drv.Ctx->intern($4), std::move($6.Fields), std::move($6.Methods)); }
     // A generic class, `class Box<T> { ... }`: not supported (README,
-    // "Generics and `mov` are not supported").  unsupportedGenerics aborts
-    // the parse.
+    // "Generics are not supported").  unsupportedGenerics aborts the parse.
     | "class" declName unsupportedGenerics
                                     { $$ = nullptr; }
     ;
@@ -234,11 +233,10 @@ classDecl:
 // -- Unsupported constructs ---------------------------------------------------
 //
 // This frontend is plain Flex and plain Bison LALR(1): no token lookahead or
-// re-lexing between the two.  Two features of PaykanLang's grammar are left
-// out (README, "Generics and `mov` are not supported").  `mov` is simply not
-// in the grammar (it lexes as an identifier).  Generics are reported with
-// one diagnostic at their '<', after which the parse stops (YYABORT, no
-// error recovery), so the program gets that diagnostic alone.
+// re-lexing between the two.  Generics are left out (README, "Generics are
+// not supported"): they are reported with one diagnostic at their '<', after
+// which the parse stops (YYABORT, no error recovery), so the program gets
+// that diagnostic alone.
 //
 // Each such rule ends at a token after which nothing else can follow, so
 // Bison reduces it (a default reduction) as soon as that token is shifted.

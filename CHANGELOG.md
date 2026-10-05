@@ -9,16 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
-- **Generics and `mov` are not supported (README, "Generics and `mov` are not supported").**
+- **Generics are not supported (README, "Generics are not supported").**
   The frontend is now plain Flex and plain Bison LALR(1): the `yylex` wrapper's type-argument
   look-ahead (the token queue, `TYPELESS` and the `... > (` scan) is gone, and Bison reports
   no conflicts. User-defined generics (`class Box<T>`, `fn f<T>`, `x: Box<int>`,
   `lib::Box<int>`, `max<int>(a, b)`, `Box<int>(1)`) are rejected with one diagnostic at the
   `<`, `generics are not supported by the bison frontend; use --frontend=recursive-descent`,
   and the parse stops there. Use `--frontend=recursive-descent` for generic code.
-- `mov` is not part of the language the frontend accepts, as PaykanLang retires it
-  ([parsabee/PaykanLang#145](https://github.com/parsabee/PaykanLang/issues/145)): no keyword,
-  no grammar rule, so `mov x` is a plain syntax error and `mov` is an ordinary identifier.
 
 ### Changed
 
@@ -26,11 +23,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   scanner returns the conversion targets (`Str`, `int`, `Int`, `float`, `Float`, `bool`,
   `Bool`, `char`) as a `BUILTIN_TYPE` token, so the conversion is an LALR(1) production; the
   names stay valid wherever `recursive-descent` accepts them as names.
-- The samples and suite tests that use generics or `mov` are excluded from the comparisons
-  with `recursive-descent` by explicit lists (`tests/unsupported_samples.txt`,
-  `tests/UnsupportedTests.cmake`, applied with `GTEST_FILTER` and the scripts' new
-  `--exclude`), and `InstalledPaykan.bison`, which cannot skip a sample, is disabled. New
-  tests: `UnsupportedSamples` (each excluded sample, and one program per generic construct,
+- The samples and suite tests that use generics, or syntax outside this frontend's grammar,
+  are excluded from the comparisons with `recursive-descent` by explicit lists
+  (`tests/unsupported_samples.txt`, `tests/UnsupportedTests.cmake`, applied with `GTEST_FILTER`
+  and the scripts' new `--exclude`), and `InstalledPaykan.bison`, which cannot skip a sample, is
+  disabled. New tests: `UnsupportedSamples` (each excluded sample, and one program per generic construct,
   is rejected as described) and `NestingLimit` (the nesting-limit check of the filtered-out
   `GrammarEdge.NestingLimitIsTheSameOnEveryFrontend`, without its generic type).
 

@@ -8,7 +8,7 @@ reject it with the bison frontend (exit status 1, no crash) as follows:
 
   generics  exactly one diagnostic, the generics one, located at a '<' of
             the source
-  mov       a syntax error first, and no internal error
+  syntax    a syntax error first, never a crash (no internal error)
 
 --generics <dir> adds every .pkn file below <dir> as a generics program
 (tests/generics: one per generic construct).

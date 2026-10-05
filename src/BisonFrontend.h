@@ -114,7 +114,7 @@ public:
 };
 
 /// The diagnostic for a generic declaration, type or call (Parser.ypp,
-/// "Unsupported constructs"; README, "Generics and `mov` are not supported").
+/// "Unsupported constructs"; README, "Generics are not supported").
 inline constexpr const char *kGenericsUnsupported =
     "generics are not supported by the bison frontend; use "
     "--frontend=recursive-descent";

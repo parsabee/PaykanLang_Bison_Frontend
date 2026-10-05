@@ -25,11 +25,10 @@ The default frontend stays `recursive-descent`; `--frontend=bison` selects this 
 
 It is plain Flex and plain Bison: the Flex scanner feeds the LALR(1) parser directly, with no
 hand-written token lookahead or re-lexing in between, and Bison reports no conflicts (there is
-no `%expect`). To stay that way it implements PaykanLang's grammar **without generics and
-without `mov`** (next section); every other program is parsed exactly as `recursive-descent`
-parses it.
+no `%expect`). To stay that way it implements PaykanLang's grammar **without generics** (next
+section); every other program is parsed exactly as `recursive-descent` parses it.
 
-## Generics and `mov` are not supported
+## Generics are not supported
 
 **Generics.** User-defined generics are not supported: generic classes and functions
 (`class Box<T>`, `fn first<T>`), generic types (`x: Box<int>`, `lib::Box<int>`) and generic
@@ -61,13 +60,6 @@ scanner returns the names of the builtin types a conversion can target (`Str`, `
 names can be a value (Sema rejects them as variable names), so their `<` is never a
 comparison. They are still accepted wherever `recursive-descent` accepts them as names
 (`class Str {}`, `fn int()`, `Str: int = 1`), so Sema reports those programs alike.
-
-**`mov`.** `mov` is not part of the language this frontend accepts: PaykanLang is retiring
-it, and moves are to be inferred
-([PaykanLang#145](https://github.com/parsabee/PaykanLang/issues/145)). It is not a keyword
-here, so `mov x` is a plain syntax error (`syntax error, unexpected IDENT`), and `mov` can be
-an ordinary identifier, which `recursive-descent` rejects. Use `--frontend=recursive-descent`
-for code that still uses `mov`.
 
 The plugin talks to `paykan` only through PaykanLang's C plugin interface
 ([`plugin_api.h`](https://github.com/parsabee/PaykanLang/blob/develop/docs/plugins/plugin-api.md)):
@@ -135,26 +127,26 @@ Every test uses the plugin module the way users do: loaded by the **installed** 
 
 | Test | What it checks |
 |---|---|
-| `ParserTests.bison`, `SemaTests.bison` | PaykanLang's frontend-parameterized parser and Sema suites, parsed with `bison` (the module, loaded by the installation's plugin loader); every input is also parsed with `recursive-descent` and the ASTs compared. Includes the nesting-limit tests (`GrammarEdge.Nesting*`) but `NestingLimitIsTheSameOnEveryFrontend`, which nests a generic type (`NestingLimit` checks its other constructs). The tests that use generics or `mov` are filtered out (below). |
+| `ParserTests.bison`, `SemaTests.bison` | PaykanLang's frontend-parameterized parser and Sema suites, parsed with `bison` (the module, loaded by the installation's plugin loader); every input is also parsed with `recursive-descent` and the ASTs compared. Includes the nesting-limit tests (`GrammarEdge.Nesting*`) but `NestingLimitIsTheSameOnEveryFrontend`, which nests a generic type (`NestingLimit` checks its other constructs). The tests that use generics, or inputs outside this frontend's grammar, are filtered out (below). |
 | `FrontendTests.bison` | The fuzz smoke test (random and mutated input never crashes, hangs or leaks). Its in-process differential check over the whole samples corpus is filtered out; `FrontendDifferential` does the same check without the unsupported samples. |
 | `InstalledPaykan.bison` | Disabled: it compares `--dump-ast` over the whole samples corpus and cannot skip a sample; `PluginListed` and `FrontendDifferential` check the same. |
 | `PluginListed` | The installed `paykan --version` lists `frontend bison (built with PaykanLang <v>, compatible) [<module>]`. |
 | `FrontendDifferential` | `paykan --dump-ast` with `recursive-descent` and with `bison` over every sample but the unsupported ones: same exit status, same AST ([`scripts/diff_frontends.py`](scripts/diff_frontends.py)). |
-| `UnsupportedSamples` | Each unsupported sample, and each program of [`tests/generics`](tests/generics) (one per generic construct), is accepted by `recursive-descent` and rejected by `bison`: with generics, by the generics diagnostic alone, at a `<`; with `mov`, by a syntax error, never a crash ([`scripts/check_unsupported.py`](scripts/check_unsupported.py)). |
+| `UnsupportedSamples` | Each unsupported sample, and each program of [`tests/generics`](tests/generics) (one per generic construct), is accepted by `recursive-descent` and rejected by `bison`: with generics, by the generics diagnostic alone, at a `<`; the others, by a syntax error first, never a crash ([`scripts/check_unsupported.py`](scripts/check_unsupported.py)). |
 | `NestingLimit` | The nesting limit is `recursive-descent`'s for every construct of `GrammarEdge.NestingLimitIsTheSameOnEveryFrontend` but its generic type, and for conversions ([`scripts/nesting_limit.py`](scripts/nesting_limit.py)). |
 | `BuiltWithMismatch` | Configuring with `-DPAYKAN_BISON_BUILT_WITH=<a version the installation does not accept>` fails with the compatibility error. |
 | `SamplesFrontendParity` | Every runnable sample but the unsupported ones on the c backend with each frontend: same stdout, stderr and exit code, zero live heap blocks ([`scripts/samples_frontends.py`](scripts/samples_frontends.py)). |
 
-The programs that use generics or `mov` are left out of the comparisons with
-`recursive-descent`, by explicit lists made from the files and tests on which the two
-frontends differ:
+The programs that use generics, or syntax outside this frontend's grammar, are left out of
+the comparisons with `recursive-descent`, by explicit lists made from the files and tests on
+which the two frontends differ:
 [`tests/unsupported_samples.txt`](tests/unsupported_samples.txt) for the samples corpus (21
-with generics, 8 with `mov`), and
+using generics, 8 outside the grammar), and
 [`tests/UnsupportedTests.cmake`](tests/UnsupportedTests.cmake) for the tests of the
 parser, Sema and frontend suites, which are filtered out with `GTEST_FILTER` because
 `paykan_add_frontend_tests` has no exclusion option. When PaykanLang's corpus or suites
 change, a listed sample that no longer exists fails the tests, and a new program using
-generics or `mov` shows up as a difference to add to a list.
+generics or syntax outside the grammar shows up as a difference to add to a list.
 
 The suites and the samples come from the PaykanLang installation
 (`share/paykan/frontend-tests`, `share/paykan/samples`), so they check the frontend against
@@ -195,7 +187,7 @@ src/                        Parser.ypp, Lexer.lpp, BisonFrontend.{h,cpp} (the dr
                             nesting limit), Plugin.cpp (the C plugin interface)
 tests/CMakeLists.txt        the test suites above
 tests/unsupported_samples.txt, tests/UnsupportedTests.cmake
-                            the samples and suite tests that use generics or mov
+                            the samples and suite tests this frontend leaves out
 tests/generics/             one program per generic construct
 scripts/                    diff_frontends.py, samples_frontends.py, check_unsupported.py,
                             nesting_limit.py, unsupported.py

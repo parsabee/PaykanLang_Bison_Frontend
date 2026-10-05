@@ -11,14 +11,14 @@
 #       test, built from the installation's test support
 #       (paykan_add_frontend_tests), with the module loaded.  Every parse is
 #       compared with the recursive-descent frontend's.  The tests whose
-#       programs use generics or mov, which this frontend leaves out, are
-#       filtered out (tests/UnsupportedTests.cmake), and so is the suite's
-#       in-process differential check over the whole samples corpus
+#       programs use generics, or syntax outside this frontend's grammar,
+#       are filtered out (tests/UnsupportedTests.cmake), and so is the
+#       suite's in-process differential check over the whole samples corpus
 #       (FrontendDifferential replaces it).
 #   InstalledPaykan.bison
 #       (from paykan_add_frontend_tests) the installed paykan's --dump-ast
 #       with bison equals recursive-descent's over the WHOLE samples corpus:
-#       disabled, as it cannot skip the samples that use generics or mov;
+#       disabled, as it cannot skip the samples this frontend leaves out;
 #       PluginListed and FrontendDifferential check the same.
 #   PluginListed
 #       the installed paykan lists bison as compatible, with its file.
@@ -30,8 +30,8 @@
 #       each sample of tests/unsupported_samples.txt, and each program of
 #       tests/generics (one per generic construct), is accepted by
 #       recursive-descent and rejected by bison: a program using generics
-#       with the generics diagnostic alone, at a '<'; one using mov with a
-#       syntax error (scripts/check_unsupported.py).
+#       with the generics diagnostic alone, at a '<'; one outside the
+#       grammar with a syntax error (scripts/check_unsupported.py).
 #   NestingLimit
 #       the nesting limit is the same as recursive-descent's for every
 #       construct but generics (scripts/nesting_limit.py).
@@ -71,14 +71,14 @@ endif()
 
 paykan_add_frontend_tests(bison PLUGIN paykan_frontend_bison)
 
-# The suites' tests that use generics or mov, which this frontend leaves out
-# (README), are filtered out: paykan_add_frontend_tests has no exclusion
-# option of its own, so GoogleTest's GTEST_FILTER does it.
+# The suites' tests that this frontend leaves out (generics, and inputs
+# outside its grammar; README) are filtered out: paykan_add_frontend_tests has
+# no exclusion option of its own, so GoogleTest's GTEST_FILTER does it.
 include(${CMAKE_CURRENT_SOURCE_DIR}/UnsupportedTests.cmake)
 foreach(suite IN ITEMS Parser Sema Frontend)
     string(TOUPPER ${suite} upper)
     set(excluded ${PAYKAN_BISON_GENERICS_${upper}_TESTS}
-                 ${PAYKAN_BISON_MOV_${upper}_TESTS}
+                 ${PAYKAN_BISON_SYNTAX_${upper}_TESTS}
                  ${PAYKAN_BISON_CORPUS_${upper}_TESTS})
     if(excluded)
         list(JOIN excluded ":" filter)
@@ -90,7 +90,7 @@ endforeach()
 # and PluginListed check the same.
 set_tests_properties(InstalledPaykan.bison PROPERTIES DISABLED TRUE)
 
-# The samples that use generics or mov.
+# The samples this frontend leaves out.
 set(UNSUPPORTED_SAMPLES ${CMAKE_CURRENT_SOURCE_DIR}/unsupported_samples.txt)
 
 find_package(Python3 REQUIRED COMPONENTS Interpreter)

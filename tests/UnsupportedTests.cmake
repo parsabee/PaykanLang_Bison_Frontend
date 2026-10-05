@@ -1,15 +1,15 @@
 # tests/UnsupportedTests.cmake
 # ----------------------------------------------------------------------------
 # The tests of PaykanLang's frontend suites (paykan_add_frontend_tests) that
-# the bison frontend cannot pass, because their programs use a feature it
-# leaves out (README, "Generics and `mov` are not supported").  tests/
+# the bison frontend cannot pass, because their programs use generics (README,
+# "Generics are not supported") or syntax outside its grammar.  tests/
 # CMakeLists.txt filters them out of ParserTests.bison and SemaTests.bison
 # with GTEST_FILTER: paykan_add_frontend_tests has no exclusion option.
 #
 # The lists were made from the tests that fail without them; each one's
-# programs use the feature it is listed under.  The programs themselves are
-# C++ string literals, so they are not run here; the samples that use the
-# same features are checked by UnsupportedSamples.
+# programs fall under the heading it is listed under.  The programs
+# themselves are C++ string literals, so they are not run here; the samples
+# of the same categories are checked by UnsupportedSamples.
 # ----------------------------------------------------------------------------
 
 # Parser suite, generics.  GrammarEdge.GenericCallInsideArgumentListStillParses:
@@ -37,8 +37,8 @@ set(PAYKAN_BISON_GENERICS_PARSER_TESTS
     GrammarEdge.NestingLimitIsTheSameOnEveryFrontend
 )
 
-# Parser suite, mov.
-set(PAYKAN_BISON_MOV_PARSER_TESTS
+# Parser suite: inputs outside this frontend's grammar.
+set(PAYKAN_BISON_SYNTAX_PARSER_TESTS
     Mov.MoveInReturn
     Mov.MoveString
     Mov.MoveTemporaryCall
@@ -91,8 +91,8 @@ set(PAYKAN_BISON_GENERICS_SEMA_TESTS
     OptionalPrimitive.GenericsInstantiateWithOptionalPrimitives
 )
 
-# Sema suite, mov.
-set(PAYKAN_BISON_MOV_SEMA_TESTS
+# Sema suite: inputs outside this frontend's grammar.
+set(PAYKAN_BISON_SYNTAX_SEMA_TESTS
     Mov.AndMoveInLhsStaysMovedAfter
     Mov.AndMoveInLhsVisibleInRhs
     Mov.AndMoveInRhsNoLaterUseOk

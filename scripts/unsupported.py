@@ -1,14 +1,14 @@
 """The list of samples the bison frontend does not accept.
 
-tests/unsupported_samples.txt names, one per line, a feature the bison
-frontend leaves out (`generics`, `mov`) and a sample path relative to
+tests/unsupported_samples.txt names, one per line, a category of programs the
+bison frontend leaves out (`generics`, `syntax`) and a sample path relative to
 PaykanLang's samples corpus.  diff_frontends.py and samples_frontends.py skip
 the listed files (--exclude); check_unsupported.py checks how the bison
 frontend rejects each one.
 """
 from __future__ import annotations
 
-FEATURES = ("generics", "mov")
+FEATURES = ("generics", "syntax")
 
 
 def load(path: str) -> dict[str, str]:

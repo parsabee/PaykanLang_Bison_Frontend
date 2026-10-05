@@ -1,18 +1,18 @@
 # The samples of PaykanLang's corpus (share/paykan/samples) that the bison
-# frontend does not accept, because they use a feature it leaves out (README,
-# "Generics and `mov` are not supported").  One per line: the feature, then the
-# path relative to the corpus.
+# frontend does not accept, because they use generics (README, "Generics are
+# not supported") or syntax outside its grammar.  One per line: the category,
+# then the path relative to the corpus.
 #
 #   generics  the program declares or uses user-defined generics; the bison
 #             frontend reports exactly one diagnostic, "generics are not
 #             supported by the bison frontend; use --frontend=recursive-descent"
-#   mov       the program uses `mov`; the bison frontend rejects it with a
-#             plain syntax error
+#   syntax    core samples written in syntax outside this frontend's grammar;
+#             Bison rejects them with a syntax error
 #
 # FrontendDifferential and SamplesFrontendParity skip these files, and
 # UnsupportedSamples checks that each one is rejected that way (and is still
 # accepted by recursive-descent).  The list was made from the files on which
-# the two frontends differ; a program using both features is listed under
+# the two frontends differ; a program in both categories is listed under
 # the one the bison frontend reports first.
 
 generics codegen/29_generics.pkn
@@ -37,11 +37,11 @@ generics sema/generics/err_wrong_arity.pkn
 generics sema/generics/ok_generic_class_and_function.pkn
 generics sema/generics/ok_recursive_and_superclass.pkn
 
-mov codegen/26_mov.pkn
-mov codegen/27_mov_expressions.pkn
-mov codegen/30_tuples.pkn
-mov codegen/44_literal_objects.pkn
-mov leak-check/13_mov_transfer.pkn
-mov leak-check/17_tuple.pkn
-mov leak-check/18_optional.pkn
-mov sema/tuples/err_tuple_mov_element.pkn
+syntax codegen/26_mov.pkn
+syntax codegen/27_mov_expressions.pkn
+syntax codegen/30_tuples.pkn
+syntax codegen/44_literal_objects.pkn
+syntax leak-check/13_mov_transfer.pkn
+syntax leak-check/17_tuple.pkn
+syntax leak-check/18_optional.pkn
+syntax sema/tuples/err_tuple_mov_element.pkn
