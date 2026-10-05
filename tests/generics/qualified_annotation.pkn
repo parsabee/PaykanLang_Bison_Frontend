@@ -1,0 +1,2 @@
+// Generics: a qualified generic type.
+fn main() -> int { b: lib::Box<int> = None; return 0; }

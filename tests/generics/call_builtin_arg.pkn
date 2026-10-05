@@ -1,0 +1,2 @@
+// Generics: a generic call with a builtin type argument.
+fn main() -> int { x = max<int>(1, 2); return 0; }

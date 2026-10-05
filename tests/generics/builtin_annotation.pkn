@@ -1,0 +1,2 @@
+// Generics: type arguments on a builtin type.
+fn main() -> int { s: Str<int> = "x"; return 0; }

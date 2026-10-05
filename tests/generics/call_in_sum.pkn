@@ -1,0 +1,2 @@
+// Generics: a generic call as the right operand of a sum.
+fn main() -> int { x = 1 + f<int>(2); return 0; }

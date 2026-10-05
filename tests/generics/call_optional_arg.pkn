@@ -1,0 +1,2 @@
+// Generics: an optional type argument.
+fn main() -> int { b = Box<Point?>(p); return 0; }

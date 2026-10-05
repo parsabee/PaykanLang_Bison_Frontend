@@ -1,0 +1,2 @@
+// Generics: a tuple type argument.
+fn main() -> int { b = Box<(int, Str)>(t); return 0; }

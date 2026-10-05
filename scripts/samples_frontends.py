@@ -17,9 +17,13 @@ The corpus is copied to a scratch directory first: the installed one
 (<paykan-prefix>/share/paykan/samples) may be read-only, and the import
 samples write module caches next to themselves.
 
+--exclude skips the samples a list names (scripts/unsupported.py, paths
+relative to the corpus): those that use a feature the bison frontend leaves
+out.
+
 Usage:
     samples_frontends.py --paykan <prefix>/bin/paykan --samples <dir>
-        [--paykan-arg=--plugin=<module> ...]
+        [--paykan-arg=--plugin=<module> ...] [--exclude <list>]
         [--backend c] --frontend recursive-descent --frontend bison
 """
 
@@ -31,6 +35,8 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+
+import unsupported
 
 ADDR_RE = re.compile(r"@0x[0-9a-fA-F]+")
 LIVE_RE = re.compile(r"^  live blocks\s*:\s*(-?\d+)$", re.M)
@@ -87,7 +93,14 @@ def check(args, scratch):
     corpus = Path(scratch) / "samples"
     shutil.copytree(args.samples, corpus,
                     ignore=shutil.ignore_patterns(".paykan_cache"))
-    files = samples(corpus)
+    excluded = set(unsupported.load(args.exclude)) if args.exclude else set()
+    missing = sorted(rel for rel in excluded if not (corpus / rel).is_file())
+    if missing:
+        print("error: excluded samples not found: " + ", ".join(missing))
+        return 1
+    all_files = samples(corpus)
+    files = [f for f in all_files
+             if f.relative_to(corpus).as_posix() not in excluded]
     if not files:
         print(f"error: no samples under {args.samples}")
         return 1
@@ -127,7 +140,8 @@ def check(args, scratch):
         elif args.verbose:
             print(f"ok   {rel}")
     print(f"{len(files) - failures}/{len(files)} samples identical on "
-          f"{', '.join(args.frontend)} (backend {args.backend})")
+          f"{', '.join(args.frontend)} (backend {args.backend}); "
+          f"{len(all_files) - len(files)} excluded")
     return 1 if failures else 0
 
 
@@ -143,6 +157,9 @@ def main():
     ap.add_argument("--paykan-arg", action="append", default=[],
                     help="an argument for every paykan run, e.g. "
                          "--paykan-arg=--plugin=<file> (repeatable)")
+    ap.add_argument("--exclude",
+                    help="a list of samples to skip "
+                         "(tests/unsupported_samples.txt)")
     ap.add_argument("-v", "--verbose", action="store_true")
     args = ap.parse_args()
     args.paykan = os.path.abspath(args.paykan)

@@ -13,9 +13,15 @@ section 9).
 Usage:
     scripts/diff_frontends.py --paykan <prefix>/bin/paykan <dir> [dir ...]
         [--paykan-arg=--plugin=<module> ...] [--frontends recursive-descent,bison]
+        [--exclude tests/unsupported_samples.txt]
 
 --paykan-arg passes an argument to every paykan run (repeatable): the
 plugin to load (`--paykan-arg=--no-plugins --paykan-arg=--plugin=<file>`).
+
+--exclude skips the files a list names (scripts/unsupported.py), by their
+path relative to the directory they are found in: the programs that use a
+feature the bison frontend leaves out.  A listed file that none of the
+directories has is an error, so the list cannot go stale unnoticed.
 
 The installed samples corpus is <paykan-prefix>/share/paykan/samples
 (PAYKAN_SAMPLES_DIR in CMake).
@@ -30,6 +36,8 @@ import os
 import subprocess
 import sys
 
+import unsupported
+
 
 def dump(paykan: list[str], frontend: str, path: str) -> tuple[int, str, str]:
     r = subprocess.run(
@@ -41,12 +49,23 @@ def dump(paykan: list[str], frontend: str, path: str) -> tuple[int, str, str]:
     return r.returncode, r.stdout, r.stderr
 
 
-def collect(dirs: list[str]) -> list[str]:
+def collect(dirs: list[str], excluded: set[str]) -> tuple[list[str], set[str]]:
+    """The .pkn files below dirs but the excluded ones, and the excluded
+    paths that were found."""
     files: list[str] = []
+    found: set[str] = set()
     for d in dirs:
         for root, _, names in os.walk(d):
-            files.extend(os.path.join(root, n) for n in names if n.endswith(".pkn"))
-    return sorted(files)
+            for n in names:
+                if not n.endswith(".pkn"):
+                    continue
+                path = os.path.join(root, n)
+                rel = os.path.relpath(path, d).replace(os.sep, "/")
+                if rel in excluded:
+                    found.add(rel)
+                else:
+                    files.append(path)
+    return sorted(files), found
 
 
 def main() -> int:
@@ -62,6 +81,10 @@ def main() -> int:
         action="append",
         default=[],
         help="an argument for every paykan run, e.g. --paykan-arg=--plugin=<file>",
+    )
+    ap.add_argument(
+        "--exclude",
+        help="a list of files to skip (tests/unsupported_samples.txt)",
     )
     ap.add_argument("dirs", nargs="+", help="directories to scan for .pkn files")
     args = ap.parse_args()
@@ -83,9 +106,13 @@ def main() -> int:
             sys.exit(f"error: frontend '{n}' is not available in "
                      f"{' '.join(paykan)} (available: {available})\n{listed}")
 
-    files = collect(dirs)
+    excluded = set(unsupported.load(args.exclude)) if args.exclude else set()
+    files, found = collect(dirs, excluded)
     if not files:
         sys.exit("error: no .pkn files found")
+    if excluded - found:
+        sys.exit("error: excluded files not found: " +
+                 ", ".join(sorted(excluded - found)))
 
     failures = 0
     accepted = rejected = 0
@@ -112,7 +139,8 @@ def main() -> int:
             rejected += 1
 
     print(f"{len(files)} files: {accepted} accepted and {rejected} rejected "
-          f"identically by {names[0]} and {names[1]}; {failures} differ")
+          f"identically by {names[0]} and {names[1]}; {failures} differ; "
+          f"{len(found)} excluded")
     return 1 if failures else 0
 
 

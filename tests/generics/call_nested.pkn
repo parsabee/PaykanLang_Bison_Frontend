@@ -1,0 +1,2 @@
+// Generics: a nested generic type argument.
+fn main() -> int { b = Box<Box<int>>(inner); return 0; }

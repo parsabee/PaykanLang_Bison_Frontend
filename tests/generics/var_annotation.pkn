@@ -1,0 +1,2 @@
+// Generics: a generic type in a variable annotation.
+fn main() -> int { b: Box<int> = None; return 0; }

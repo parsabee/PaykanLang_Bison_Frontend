@@ -1,0 +1,2 @@
+// Generics: a qualified generic construction.
+fn main() -> int { b = lib::Box<int>(1); return 0; }

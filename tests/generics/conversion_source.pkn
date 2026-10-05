@@ -1,0 +1,2 @@
+// Generics: a generic type as the source type of a conversion.
+fn main() -> int { s = Str<Box<int>>(b); return 0; }
