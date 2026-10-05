@@ -24,7 +24,7 @@ on:
 # the v0.1.0 tag.  Until then the nightly run against develop fails (develop
 # has no loadable plugins yet).
 env:
-  PAYKAN_REF: "87bf6b2948eb9cb4d73873c526b75938ab38e2e6"
+  PAYKAN_REF: "6447b33400c89a6fa01c56c982b02e3e91329575"
 
 permissions:
   contents: read
