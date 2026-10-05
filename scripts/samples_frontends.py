@@ -18,7 +18,8 @@ The corpus is copied to a scratch directory first: the installed one
 samples write module caches next to themselves.
 
 Usage:
-    samples_frontends.py --paykan build/bin/paykan --samples <dir>
+    samples_frontends.py --paykan <prefix>/bin/paykan --samples <dir>
+        [--paykan-arg=--plugin=<module> ...]
         [--backend c] --frontend recursive-descent --frontend bison
 """
 
@@ -71,7 +72,7 @@ def sample_args(sample, scratch):
 
 
 def run(paykan, frontend, backend, sample, scratch, cwd):
-    cmd = [paykan, f"--frontend={frontend}", f"--backend={backend}",
+    cmd = [*paykan, f"--frontend={frontend}", f"--backend={backend}",
            "--track-heap", str(sample), *sample_args(sample, scratch)]
     p = subprocess.run(cmd, stdin=subprocess.DEVNULL, capture_output=True,
                        text=True, errors="replace", cwd=str(cwd))
@@ -93,8 +94,8 @@ def check(args, scratch):
     failures = 0
     for sample in files:
         rel = sample.relative_to(corpus)
-        results = {fe: run(args.paykan, fe, args.backend, sample, scratch,
-                           corpus)
+        results = {fe: run([args.paykan, *args.paykan_arg], fe, args.backend,
+                           sample, scratch, corpus)
                    for fe in args.frontend}
         problems = []
         for fe, (rc, out, err, live) in results.items():
@@ -139,6 +140,9 @@ def main():
     ap.add_argument("--frontend", action="append", required=True,
                     help="a frontend to run (repeatable; the first is the "
                          "reference)")
+    ap.add_argument("--paykan-arg", action="append", default=[],
+                    help="an argument for every paykan run, e.g. "
+                         "--paykan-arg=--plugin=<file> (repeatable)")
     ap.add_argument("-v", "--verbose", action="store_true")
     args = ap.parse_args()
     args.paykan = os.path.abspath(args.paykan)

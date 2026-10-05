@@ -1,13 +1,23 @@
 # tests/CMakeLists.txt
 # ----------------------------------------------------------------------------
-# The bison frontend against the installed PaykanLang:
+# The bison plugin against the installed PaykanLang.  Everything runs the
+# plugin MODULE the way users get it: loaded by the installed `paykan`
+# (PAYKAN_EXECUTABLE) with `--no-plugins --plugin=<module>`, or in process by
+# that installation's own plugin loader.
 #
 #   ParserTests.bison, SemaTests.bison, FrontendTests.bison
 #       PaykanLang's frontend-parameterized parser and Sema suites (the
 #       nesting-limit tests included, GrammarEdgeTests), its fuzz smoke test
 #       and its in-process differential check over the samples corpus, built
-#       from the installation's test support (paykan_add_frontend_tests).
-#       Every parse is compared with the recursive-descent frontend's.
+#       from the installation's test support (paykan_add_frontend_tests),
+#       with the module loaded.  Every parse is compared with the
+#       recursive-descent frontend's.
+#   InstalledPaykan.bison
+#       the installed paykan lists the plugin, and its --dump-ast with bison
+#       equals recursive-descent's over the samples corpus (from
+#       paykan_add_frontend_tests).
+#   PluginListed
+#       the installed paykan lists bison as compatible, with its file.
 #   FrontendDifferential
 #       `paykan --dump-ast` with recursive-descent and with bison over the
 #       installed samples corpus (scripts/diff_frontends.py).
@@ -45,20 +55,32 @@ if(NOT "recursive-descent" IN_LIST PAYKAN_FRONTENDS)
                         "installation's recursive-descent frontend, which it lacks")
 endif()
 
-paykan_add_frontend_tests(bison PLUGINS paykan_frontend_bison)
+paykan_add_frontend_tests(bison PLUGIN paykan_frontend_bison)
 
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
+# The installed paykan with only this plugin loaded.
+set(PAYKAN_WITH_BISON --paykan-arg=--no-plugins
+    --paykan-arg=--plugin=$<TARGET_FILE:paykan_frontend_bison>)
+
+add_test(NAME PluginListed
+    COMMAND ${PAYKAN_EXECUTABLE} --no-plugins
+            --plugin=$<TARGET_FILE:paykan_frontend_bison> --version)
+set_tests_properties(PluginListed PROPERTIES
+    PASS_REGULAR_EXPRESSION
+    "\nfrontend bison \\(built with PaykanLang [^,\n]+, compatible\\) \\[[^]\n]*libpaykan_frontend_bison[^]\n]*\\]\n"
+    FAIL_REGULAR_EXPRESSION "rejected plugin|incompatible")
+
 add_test(NAME FrontendDifferential
     COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/diff_frontends.py
-            --paykan $<TARGET_FILE:paykan>
+            --paykan ${PAYKAN_EXECUTABLE} ${PAYKAN_WITH_BISON}
             --frontends recursive-descent,bison
             ${PAYKAN_SAMPLES_DIR})
 
 if("c" IN_LIST PAYKAN_BACKENDS)
     add_test(NAME SamplesFrontendParity
         COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/samples_frontends.py
-                --paykan $<TARGET_FILE:paykan>
+                --paykan ${PAYKAN_EXECUTABLE} ${PAYKAN_WITH_BISON}
                 --samples ${PAYKAN_SAMPLES_DIR}
                 --backend c
                 --frontend recursive-descent --frontend bison)

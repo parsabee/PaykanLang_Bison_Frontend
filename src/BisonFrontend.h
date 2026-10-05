@@ -1,7 +1,13 @@
 // Copyright (c) 2026 Parsa Bagheri
 // SPDX-License-Identifier: MIT
 // The Bison/Flex frontend plugin: internals shared by the grammar actions,
-// the scanner and BisonFrontend.cpp.  Private to this library.
+// the scanner, BisonFrontend.cpp and Plugin.cpp.  Private to this library.
+//
+// Inside the plugin the parser builds PaykanLang's own AST (ast::ASTContext,
+// from the installed headers and static libraries linked into the module);
+// Plugin.cpp prints it in the AST interchange format for paykan.  Across the
+// boundary to paykan there is only the C interface of paykan/plugin_api.h
+// and that text.
 
 #pragma once
 
@@ -35,16 +41,17 @@ using namespace paykan::ast;
 
 namespace paykan::frontend::bison {
 
-/// The Bison/Flex implementation of the frontend interface.  One parse at a
-/// time per instance; the members are the state the generated parser and
-/// scanner actions reach through `drv`.
-class BisonFrontend : public Frontend {
+/// The Bison/Flex parser.  One parse at a time per instance; the members
+/// are the state the generated parser and scanner actions reach through
+/// `drv`.  Plugin.cpp exposes it to paykan through the C plugin interface.
+class BisonFrontend {
 public:
-  std::string_view name() const override { return "bison"; }
-
+  /// Parse @p source (the text of @p filename) into @p ctx, reporting every
+  /// syntax error through @p diag.  Nothing escapes: exceptions become
+  /// diagnostics.
   ParseResult parse(std::string_view filename, std::string_view source,
                     ast::ASTContext &ctx, sema::DiagEngine &diag,
-                    const Options &opts) override;
+                    const Options &opts);
 
   // -- State used by the generated parser and scanner ----------------------
 

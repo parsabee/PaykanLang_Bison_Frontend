@@ -235,14 +235,7 @@ void BisonFrontend::trackNesting(const yy::parser::symbol_type &tok) {
   }
 }
 
-static std::unique_ptr<Frontend> createBisonFrontend() {
-  return std::make_unique<BisonFrontend>();
-}
-
 } // namespace paykan::frontend::bison
-
-PAYKAN_REGISTER_FRONTEND(bison, "bison",
-                         &paykan::frontend::bison::createBisonFrontend);
 
 // -- yylex wrapper: type-argument disambiguation ------------------------------
 //
