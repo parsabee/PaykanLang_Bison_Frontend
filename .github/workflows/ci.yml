@@ -16,15 +16,12 @@ on:
         default: ""
 
 # The PaykanLang commit this plugin is built and tested against on pushes and
-# pull requests: the head of PaykanLang's loadable-frontends branch
-# (claude/dynamic-frontends-141, PaykanLang#143, stacked on #142), the first
-# PaykanLang that loads frontend plugins at run time.  (It also carries the
-# macOS fix for the AST reader: older heads do not build with Apple's
-# libc++.)  TODO: repin once those PRs merge: the develop merge commit, then
-# the v0.1.0 tag.  Until then the nightly run against develop fails (develop
-# has no loadable plugins yet).
+# pull requests: develop with PaykanLang#142 and #143 merged (0e39c0e), the
+# first PaykanLang that loads frontend plugins at run time.  The nightly run
+# builds against develop itself.  TODO: repin to the v0.1.0-alpha tag once it
+# exists.
 env:
-  PAYKAN_REF: "6447b33400c89a6fa01c56c982b02e3e91329575"
+  PAYKAN_REF: "0e39c0e59bd502399a002cad17779243784e713b"
 
 permissions:
   contents: read
