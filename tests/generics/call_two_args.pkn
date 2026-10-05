@@ -1,0 +1,2 @@
+// Generics: two type arguments, the first a builtin.
+fn main() -> int { p = Pair<Str, int>("a", 1); return 0; }

@@ -1,0 +1,2 @@
+// Generics: a generic call as the right operand of a comparison.
+fn main() -> int { ok: bool = a < f<int>(x); return 0; }

@@ -17,7 +17,6 @@
 #include "Parser.ypp.h"
 #include "paykan/Frontend.h"
 
-#include <deque>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -26,15 +25,16 @@ namespace paykan::frontend::bison {
 class BisonFrontend;
 }
 
-// Flex needs this macro for our custom driver.  The scanner itself is exposed
-// as yylex_raw; the parser calls yylex (BisonFrontend.cpp), a thin wrapper
-// that adds the one token of context the LALR(1) grammar cannot express:
-// whether a '<' after an identifier opens a type-argument list (see TYPELESS).
+// Flex needs this macro for our custom driver.  The Flex scanner is exposed as
+// yylex_raw; the parser calls yylex (BisonFrontend.cpp), which hands it each
+// token exactly as Flex scanned it, in order, after counting it towards the
+// nesting limit.  There is no token lookahead or re-lexing: the scanner is
+// plain Flex and the grammar plain LALR(1).
 #define YY_DECL                                                                \
   yy::parser::symbol_type yylex_raw(paykan::frontend::bison::BisonFrontend &drv)
 YY_DECL;
 
-/// Parser entry point: yylex_raw plus type-argument disambiguation.
+/// Parser entry point: yylex_raw, with each token counted by trackNesting.
 yy::parser::symbol_type yylex(paykan::frontend::bison::BisonFrontend &drv);
 
 using namespace paykan::ast;
@@ -77,15 +77,6 @@ public:
   bool TraceParsing = false;
   bool TraceScanning = false;
 
-  /// Tokens already scanned ahead by the yylex wrapper (see
-  /// BisonFrontend.cpp) but not yet handed to the parser, in source order.
-  std::deque<yy::parser::symbol_type> Lookahead;
-  /// True when the token most recently handed to the parser was an IDENT.
-  bool PrevWasIdent = false;
-  /// Set by the yylex wrapper for a '<' after an identifier: whether its
-  /// look-ahead scan found the matching '>' (a type-argument list).
-  bool LessIsTypeArgs = false;
-
   /// The nesting tracker (BisonFrontend.cpp): enforces frontend::kMaxNesting
   /// over the token stream the parser reads, counting what the
   /// recursive-descent parser counts.  One NestLevel per open bracket (the
@@ -121,6 +112,12 @@ public:
   void scanBegin(std::string_view source);
   void scanEnd();
 };
+
+/// The diagnostic for a generic declaration, type or call (Parser.ypp,
+/// "Unsupported constructs"; README, "Generics and `mov` are not supported").
+inline constexpr const char *kGenericsUnsupported =
+    "generics are not supported by the bison frontend; use "
+    "--frontend=recursive-descent";
 
 /// Build the ImportDecl for `import [::]a::b::name [as alias];`.  The path is
 /// split at its last "::" into the base path ("a::b", empty when there is no

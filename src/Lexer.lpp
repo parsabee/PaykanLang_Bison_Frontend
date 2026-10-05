@@ -156,8 +156,11 @@ comment     \/\/[^\n]*
 "class"    return yy::parser::make_CLASS(loc);
 "enum"     return yy::parser::make_ENUM(loc);
 "match"    return yy::parser::make_MATCH(loc);
-"mov"      return yy::parser::make_MOV(loc);
 "_"        return yy::parser::make_UNDERSCORE(loc);
+  /* The builtin types a conversion can target (Parser.ypp, BUILTIN_TYPE).
+     Longest match keeps `integer`, `Strs`, ... identifiers. */
+"Str"|"int"|"Int"|"float"|"Float"|"bool"|"Bool"|"char" {
+             return yy::parser::make_BUILTIN_TYPE(yytext, loc); }
 {id}       return yy::parser::make_IDENT (yytext, loc);
 
   /* Catch-all: any byte no earlier rule claims is a lexical error (without

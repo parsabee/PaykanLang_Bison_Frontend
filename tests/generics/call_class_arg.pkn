@@ -1,0 +1,2 @@
+// Generics: a generic construction with a class type argument.
+fn main() -> int { b = Box<Point>(p); return 0; }

@@ -1,0 +1,3 @@
+// Generics: a generic type of a parameter.
+fn f(b: Box<Str>) { }
+fn main() -> int { return 0; }

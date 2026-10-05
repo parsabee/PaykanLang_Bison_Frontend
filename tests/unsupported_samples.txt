@@ -1,0 +1,47 @@
+# The samples of PaykanLang's corpus (share/paykan/samples) that the bison
+# frontend does not accept, because they use a feature it leaves out (README,
+# "Generics and `mov` are not supported").  One per line: the feature, then the
+# path relative to the corpus.
+#
+#   generics  the program declares or uses user-defined generics; the bison
+#             frontend reports exactly one diagnostic, "generics are not
+#             supported by the bison frontend; use --frontend=recursive-descent"
+#   mov       the program uses `mov`; the bison frontend rejects it with a
+#             plain syntax error
+#
+# FrontendDifferential and SamplesFrontendParity skip these files, and
+# UnsupportedSamples checks that each one is rejected that way (and is still
+# accepted by recursive-descent).  The list was made from the files on which
+# the two frontends differ; a program using both features is listed under
+# the one the bison frontend reports first.
+
+generics codegen/29_generics.pkn
+generics codegen/32_c_identifiers.pkn
+generics codegen/35_optional_primitives.pkn
+generics imports/12_calc/main.pkn
+generics imports/err_generic_import/geometry/shapes.pkn
+generics imports/err_generic_import/main.pkn
+generics imports/err_generic_import_in_template/geometry/shapes.pkn
+generics imports/err_generic_import_in_template/main.pkn
+generics leak-check/24_optional_primitives.pkn
+generics sema/generics/err_error_inside_instantiation.pkn
+generics sema/generics/err_inference_ambiguous.pkn
+generics sema/generics/err_inference_impossible.pkn
+generics sema/generics/err_instantiations_are_distinct_types.pkn
+generics sema/generics/err_missing_type_args.pkn
+generics sema/generics/err_recursive_instantiation_depth.pkn
+generics sema/generics/err_type_param_as_value.pkn
+generics sema/generics/err_type_param_shadows_class.pkn
+generics sema/generics/err_unknown_generic.pkn
+generics sema/generics/err_wrong_arity.pkn
+generics sema/generics/ok_generic_class_and_function.pkn
+generics sema/generics/ok_recursive_and_superclass.pkn
+
+mov codegen/26_mov.pkn
+mov codegen/27_mov_expressions.pkn
+mov codegen/30_tuples.pkn
+mov codegen/44_literal_objects.pkn
+mov leak-check/13_mov_transfer.pkn
+mov leak-check/17_tuple.pkn
+mov leak-check/18_optional.pkn
+mov sema/tuples/err_tuple_mov_element.pkn

@@ -1,0 +1,2 @@
+// Generics: an array type argument.
+fn main() -> int { b = Box<Point[]>(ps); return 0; }

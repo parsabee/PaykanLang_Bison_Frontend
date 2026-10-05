@@ -1,0 +1,4 @@
+// Generics: a generic class with a superclass.
+class Base { }
+class Box<T> : Base { v: T; }
+fn main() -> int { return 0; }
